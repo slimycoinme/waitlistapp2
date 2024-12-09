@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidReferralCode(code) {
+      return code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function hasValidFields(data) {
+      return data.keys().hasAll(['name', 'email', 'referral_code']) &&
+             data.keys().hasOnly(['name', 'email', 'referral_code', 'referred_by', 'referrals', 'feedback', 'created_at']);
+    }
+
+    function hasValidDataTypes(data) {
+      return data.name is string &&
+             data.email is string &&
+             data.referral_code is string &&
+             (data.referred_by == null || data.referred_by is string) &&
+             data.referrals is int &&
+             (data.feedback == null || data.feedback is string);
+    }
+
+    function hasValidFieldSizes(data) {
+      return data.name.size() <= 100 &&
+             data.email.size() <= 100 &&
+             data.referral_code.size() == 6 &&
+             (data.referred_by == null || data.referred_by.size() == 6) &&
+             (data.feedback == null || data.feedback.size() <= 500);
+    }
+
+    // Rate limiting function (5 requests per minute)
+    function isNotRateLimited() {
+      return request.time > resource.data.lastRequest + duration.value(60, 's') ||
+             resource.data.requestCount < 5;
+    }
+
+    // Protect users collection
+    match /users/{userId} {
+      // Allow reading user data
+      allow read: if true;  // Public read access for waitlist position checking
+      
+      // Allow creating new users
+      allow create: if
+        // Validate all required fields and their types
+        hasValidFields(request.resource.data) &&
+        hasValidDataTypes(request.resource.data) &&
+        hasValidFieldSizes(request.resource.data) &&
+        
+        // Validate email format and ensure uniqueness
+        isValidEmail(request.resource.data.email) &&
+        !exists(/databases/$(database)/documents/users/*[email == request.resource.data.email]) &&
+        
+        // Validate referral code format
+        isValidReferralCode(request.resource.data.referral_code) &&
+        
+        // Validate referred_by if present
+        (request.resource.data.referred_by == null ||
+         exists(/databases/$(database)/documents/users/*[referral_code == request.resource.data.referred_by])) &&
+        
+        // Ensure referrals starts at 0
+        request.resource.data.referrals == 0;
+      
+      // Allow updating specific fields
+      allow update: if
+        // Only allow updating feedback and referrals
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['referrals', 'feedback']) &&
+        
+        // Validate feedback
+        (request.resource.data.feedback == null ||
+         (request.resource.data.feedback is string &&
+          request.resource.data.feedback.size() <= 500)) &&
+        
+        // Validate referrals (can only increment by 1)
+        request.resource.data.referrals == resource.data.referrals + 1;
+      
+      // Never allow deletion
+      allow delete: if false;
+    }
+
+    // Protect indexes
+    match /users/--indexes--/{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
