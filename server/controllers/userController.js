@@ -5,12 +5,12 @@ export const getAllUsers = async (req, res) => {
   try {
     console.log('Fetching users...');
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 1000;
     const startAfter = req.query.startAfter || null;
     
     console.log('Calling UserModel.getAllUsers with:', { limit, startAfter });
     const users = await UserModel.getAllUsers(limit, startAfter);
-    console.log('Users fetched:', users);
+    console.log('Users fetched:', users.length);
     
     res.json(users);
   } catch (error) {

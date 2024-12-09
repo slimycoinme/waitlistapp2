@@ -80,7 +80,7 @@ function App() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/api/users');
+      const response = await axios.get(`/api/users?page=${page}&limit=1000`);
       if (response.data) {
         const sortedUsers = response.data
           .map(user => ({

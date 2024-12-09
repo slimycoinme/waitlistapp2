@@ -92,17 +92,28 @@ export class UserModel {
     };
   }
 
-  static async getAllUsers(limit = 10, startAfter = null) {
+  static async getAllUsers(limit = 1000, startAfter = null) {
     try {
-      console.log('Starting getAllUsers...');
+      console.log('Starting getAllUsers with limit:', limit);
       
       // First, check if we can access Firestore
       const usersRef = db.collection('users');
       console.log('Got users collection reference');
       
-      // Try to get all documents
+      // Try to get all documents with ordering
       console.log('Fetching documents...');
-      const snapshot = await usersRef.get();
+      let query = usersRef.orderBy('created_at', 'desc');
+      
+      // Apply pagination with high limit
+      if (limit) {
+        query = query.limit(limit);
+      }
+      
+      if (startAfter) {
+        query = query.startAfter(startAfter);
+      }
+      
+      const snapshot = await query.get();
       console.log(`Found ${snapshot.size} documents`);
       
       if (snapshot.empty) {
@@ -127,18 +138,25 @@ export class UserModel {
       });
       
       console.log(`Successfully processed ${users.length} users`);
+      return users;
       
-      // Sort users by position if available, otherwise by created_at
-      const sortedUsers = users.sort((a, b) => {
-        if (a.position != null && b.position != null) {
-          return a.position - b.position;
-        }
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-      
-      return sortedUsers;
     } catch (error) {
       console.error('Error in getAllUsers:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
+  static async testFirestoreConnection() {
+    try {
+      await db.collection('users').get();
+      console.log('Firestore connection test successful');
+    } catch (error) {
+      console.error('Error in Firestore connection test:', error);
       console.error('Error details:', {
         code: error.code,
         message: error.message,
