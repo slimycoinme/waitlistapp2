@@ -54,7 +54,7 @@ const Logo = () => {
           transition: 'all 1s ease-in-out',
         }}
       >
-        Join Our Waitlist
+        Join Our Exclusive Waitlist
       </Typography>
     </>
   );

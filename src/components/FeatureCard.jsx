@@ -28,7 +28,7 @@ const FeatureCard = ({
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <Icon sx={{ color: '#FF69B4', fontSize: { md: 24, lg: 30 }, mr: 1 }} />
         <Typography variant="h6" sx={{ 
-          fontSize: { md: '0.9rem', lg: '1rem' },
+          fontSize: { md: '0.7rem', lg: '0.9rem' },
           fontWeight: 600,
           color: 'white'
         }}>

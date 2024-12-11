@@ -6,102 +6,134 @@ import {
   IconButton,
   Tooltip,
   Stack,
-  Pagination
+  CircularProgress,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import { ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 
-const WaitlistEntries = ({ 
-  displayedUsers, 
-  page, 
-  totalPages, 
-  handlePageChange 
-}) => {
-  return (
-    <>
-      <Typography 
-        variant="h5" 
-        gutterBottom 
-        sx={{ 
-          mt: 4, 
-          color: '#1976d2', 
-          fontFamily: 'Poppins, sans-serif', 
-          fontWeight: 600 
-        }}
-      >
-        Current Waitlist
-      </Typography>
+const formatDate = (dateString) => {
+  if (!dateString) return 'Recently';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Recently';
+  }
+};
 
+const handleCopyReferralCode = async (referralCode) => {
+  try {
+    await navigator.clipboard.writeText(referralCode);
+    toast.success('Referral code copied!');
+  } catch (error) {
+    console.error('Failed to copy referral code:', error);
+    toast.error('Failed to copy referral code');
+  }
+};
+
+const WaitlistEntries = ({ 
+  users, 
+  loading,
+  loadMore,
+  hasMore,
+  totalCount = 0
+}) => {
+  console.log('WaitlistEntries props:', { users, loading, hasMore, totalCount });
+
+  if (loading && !users.length) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!users || users.length === 0) {
+    return (
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Latest Waitlist Entries
+          Current Waitlist (0 users)
         </Typography>
-        {displayedUsers.length > 0 ? (
-          <>
-            <div style={{ marginBottom: '20px' }}>
-              {displayedUsers.map((user, index) => (
-                <div
-                  key={user.email}
-                  style={{
-                    padding: '10px',
-                    borderBottom: index < displayedUsers.length - 1 ? '1px solid #eee' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <Typography variant="body1" component="span" sx={{ fontWeight: 'bold' }}>
-                      {user.name}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Joined: {user.created_at ? new Date(user.created_at).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : 'Recently'}
-                    </Typography>
-                    {user.referrals > 0 && (
-                      <Typography variant="body2" color="success.main">
-                        {user.referrals} referral{user.referrals !== 1 ? 's' : ''}
-                      </Typography>
-                    )}
-                  </div>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
-                    <Typography variant="body2" color="textSecondary">
-                      Code: {user.referral_code}
-                    </Typography>
+        <Typography>No entries yet</Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Current Waitlist ({totalCount} users)
+      </Typography>
+      
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Position</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Referrals</TableCell>
+              <TableCell>Referral Code</TableCell>
+              <TableCell>Joined</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.email}>
+                <TableCell>{user.position || '-'}</TableCell>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.referrals || 0}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {user.referral_code}
                     <Tooltip title="Copy referral code">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(user.referral_code);
-                          toast.success('Referral code copied!');
-                        }}
+                      <IconButton
+                        size="small"
+                        onClick={() => handleCopyReferralCode(user.referral_code)}
+                        sx={{ ml: 1 }}
                       >
-                        <ContentCopyIcon sx={{ fontSize: 16 }} />
+                        <ContentCopyIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </Box>
-                </div>
-              ))}
-            </div>
-            <Stack spacing={2} alignItems="center">
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-              />
-            </Stack>
-          </>
-        ) : (
-          <Typography variant="body1" align="center">
-            No entries yet. Be the first to join!
-          </Typography>
-        )}
-      </Paper>
-    </>
+                </TableCell>
+                <TableCell>{formatDate(user.created_at)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {hasMore && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <button 
+            onClick={loadMore}
+            disabled={loading}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: loading ? '#ccc' : '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {loading ? 'Loading...' : `Load More (${users.length} of ${totalCount})`}
+          </button>
+        </Box>
+      )}
+    </Paper>
   );
 };
 

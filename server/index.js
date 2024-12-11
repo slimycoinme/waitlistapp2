@@ -1,53 +1,52 @@
 import express from 'express';
 import cors from 'cors';
-import { config } from 'dotenv';
-import { limiter, helmetConfig, sanitizeInput } from './middleware/security.js';
 import userRoutes from './routes/users.js';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { db } from './config/firebase.js';
 
-// Load environment variables
-config()
-
-// Get current directory
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const server = express()
-
-// Security middleware
-server.use(helmetConfig)
-server.use(limiter)
-server.use(sanitizeInput)
-
-// Configure CORS
-const corsOptions = {
-    origin: process.env.NODE_ENV === 'production' 
-        ? process.env.ALLOWED_ORIGINS?.split(',') 
-        : 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 86400 // 24 hours
-}
-server.use(cors(corsOptions))
-server.use(express.json({ limit: '10kb' })) // Limit payload size
-
-// Routes
-server.use('/api/users', userRoutes)
-
-// Error handler
-server.use((err, req, res, next) => {
-  console.error('Server Error:', err.stack);
-  res.status(500).json({ error: 'Internal server error', details: err.message });
-});
+const app = express();
+const port = process.env.PORT || 3000;
 
 // Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log('Environment:', process.env.NODE_ENV || 'development');
-  console.log('Firebase Project ID:', process.env.FIREBASE_PROJECT_ID);
-});
+const startServer = async () => {
+  try {
+    // Middleware
+    app.use(cors({
+      origin: ['http://localhost:5173', 'http://localhost:3000'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+    app.use(express.json());
 
-export default server;
+    // Log all requests
+    app.use((req, res, next) => {
+      console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+      next();
+    });
+
+    // Routes
+    app.use('/api/users', userRoutes);
+
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'ok', environment: process.env.NODE_ENV, projectId: process.env.FIREBASE_PROJECT_ID });
+    });
+
+    // Error handling middleware
+    app.use((err, req, res, next) => {
+      console.error('Global error handler:', err);
+      res.status(500).json({ error: 'Internal server error', message: err.message });
+    });
+
+    // Start listening
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('Firebase Project ID:', process.env.FIREBASE_PROJECT_ID);
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

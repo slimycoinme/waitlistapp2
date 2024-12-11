@@ -13,8 +13,6 @@
 .DS_Store
 
 # environment files (keep examples in git)
-.env
-.env.local
 .env.*.local
 **/.env
 **/.env.local

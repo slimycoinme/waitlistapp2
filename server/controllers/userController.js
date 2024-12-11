@@ -1,75 +1,138 @@
-import { isValidEmail, isValidName, generateReferralCode } from '../utils/helpers.js';
-import { UserModel } from '../models/user.js';
+import UserModel from '../models/user.js';
 
-export const getAllUsers = async (req, res) => {
-  try {
-    console.log('Fetching users...');
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 1000;
-    const startAfter = req.query.startAfter || null;
-    
-    console.log('Calling UserModel.getAllUsers with:', { limit, startAfter });
-    const users = await UserModel.getAllUsers(limit, startAfter);
-    console.log('Users fetched:', users.length);
-    
-    res.json(users);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
+// Create new user
 export const createUser = async (req, res) => {
   try {
-    const { name, email, referred_by } = req.body;
-
-    // Validate input
-    if (!isValidName(name) || !isValidEmail(email)) {
-      return res.status(400).json({ error: 'Invalid name or email format' });
+    const { name, email, referralCode } = req.body;
+    
+    // Validate required fields
+    if (!name || !email) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          name: !name ? 'Name is required' : null,
+          email: !email ? 'Email is required' : null
+        }
+      });
     }
 
-    // Check if email already exists
-    const existingPosition = await UserModel.getPosition(email);
-    if (existingPosition !== -1) {
-      return res.status(409).json({ error: 'Email already registered' });
+    console.log('Creating new user:', { name, email, referralCode });
+    
+    // Check if user already exists
+    const existingUser = await UserModel.getUserByEmail(email);
+    if (existingUser) {
+      console.log('User already exists with email:', email);
+      return res.status(409).json({ 
+        error: 'User already exists',
+        details: 'This email is already registered'
+      });
     }
 
-    // Create new user
-    const referralCode = generateReferralCode();
-    const userData = {
-      name,
-      email,
-      referral_code: referralCode,
-      referrals: 0,
-      referred_by: referred_by || null
-    };
-
-    const newUser = await UserModel.create(userData);
-
-    res.status(201).json(newUser);
+    // If referral code provided, update referrer's count
+    if (referralCode) {
+      const referrer = await UserModel.getUserByReferralCode(referralCode);
+      if (referrer) {
+        await UserModel.updateReferralCount(referrer.id, (referrer.referrals || 0) + 1);
+      }
+    }
+    
+    // Create user
+    const newUser = await UserModel.createUser({ name, email, referralCode });
+    console.log('User created successfully:', newUser.id);
+    
+    res.status(201).json({ 
+      message: 'User created successfully',
+      user: newUser 
+    });
   } catch (error) {
     console.error('Error creating user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Failed to create user',
+      details: error.message
+    });
   }
 };
 
-export const getUserPosition = async (req, res) => {
+// Get all users with pagination
+export const getUsers = async (req, res) => {
+  try {
+    const { limit = 25, startAfter } = req.query;
+    console.log('Fetching users with params:', { limit, startAfter });
+    
+    let startAfterDoc = null;
+    if (startAfter) {
+      try {
+        startAfterDoc = JSON.parse(startAfter);
+      } catch (e) {
+        console.warn('Invalid startAfter parameter:', e);
+      }
+    }
+
+    const result = await UserModel.getAllUsers(parseInt(limit), startAfterDoc);
+    
+    // Format the lastDoc to be JSON-serializable
+    const formattedLastDoc = result.lastDoc ? {
+      id: result.lastDoc.id,
+      referrals: result.lastDoc.referrals,
+      position: result.lastDoc.position
+    } : null;
+
+    res.json({
+      users: result.users,
+      lastDoc: formattedLastDoc,
+      totalCount: result.totalCount
+    });
+  } catch (error) {
+    console.error('Error getting users:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch users',
+      details: error.message
+    });
+  }
+};
+
+// Get user by email
+export const getUserByEmail = async (req, res) => {
   try {
     const { email } = req.params;
+    const user = await UserModel.getUserByEmail(email);
     
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found',
+        details: `No user found with email: ${email}`
+      });
     }
-
-    const position = await UserModel.getPosition(email);
     
-    if (position === -1) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ position });
+    res.json(user);
   } catch (error) {
-    console.error('Error getting user position:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error getting user by email:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch user',
+      details: error.message
+    });
+  }
+};
+
+// Get user by referral code
+export const getUserByReferralCode = async (req, res) => {
+  try {
+    const { referralCode } = req.params;
+    const user = await UserModel.getUserByReferralCode(referralCode);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found',
+        details: `No user found with referral code: ${referralCode}`
+      });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    console.error('Error getting user by referral code:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch user',
+      details: error.message
+    });
   }
 };
