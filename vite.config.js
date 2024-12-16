@@ -10,8 +10,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'firebase', '@mui/material'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore']
+          vendor: [
+            'react', 
+            'react-dom'
+          ]
         }
       }
     }

@@ -15,8 +15,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// API base URL
-export const API_URL = import.meta.env.PROD 
-  ? 'https://your-netlify-site.netlify.app/api'
-  : 'http://localhost:3000/api';
+export const API_URL = import.meta.env.DEV 
+  ? 'http://localhost:3000/api'
+  : '/api';
 </rewritten_file> 
