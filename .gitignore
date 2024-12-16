@@ -45,4 +45,4 @@ lerna-debug.log*
 
 # Local Netlify folder
 .netlify
-"dist/" 
+dist/
