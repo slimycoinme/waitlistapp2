@@ -8,6 +8,12 @@
   NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
@@ -20,7 +26,7 @@
   force = true
 
 [context.production.environment]
-  VITE_API_URL = "https://only4u.live/api"
+  VITE_API_URL = "https://www.only4u.live/api"
 
 [[headers]]
   for = "/*"
@@ -28,6 +34,7 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
 [[headers]]
   for = "/assets/*"
