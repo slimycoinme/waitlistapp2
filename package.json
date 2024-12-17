@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "add-dummy-data": "node scripts/addDummyData.js",
+    "migrate-firestore": "node scripts/migrate-to-firestore.js"
   },
   "dependencies": {
     "@emotion/react": "11.11.1",

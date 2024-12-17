@@ -1,6 +1,6 @@
 # dependencies
-/node_modules
-/.pnp
+node_modules
+.pnp
 .pnp.js
 
 # testing
@@ -8,6 +8,7 @@
 
 # production
 /build
+dist/
 
 # misc
 .DS_Store
@@ -45,4 +46,3 @@ lerna-debug.log*
 
 # Local Netlify folder
 .netlify
-dist/
