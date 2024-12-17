@@ -10,26 +10,21 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-try {
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  
-  // Log successful initialization
-  console.log('Firebase initialized successfully');
-  
-  // If we're in development, use the emulator
-  if (import.meta.env.DEV) {
-    try {
-      connectFirestoreEmulator(db, 'localhost', 8080);
-      console.log('Connected to Firestore emulator');
-    } catch (error) {
-      console.warn('Failed to connect to Firestore emulator:', error);
-    }
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Log successful initialization
+console.log('Firebase initialized successfully');
+
+// If we're in development, use the emulator
+if (import.meta.env.DEV) {
+  try {
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firestore emulator');
+  } catch (error) {
+    console.warn('Failed to connect to Firestore emulator:', error);
   }
-  
-  export { db };
-  export default app;
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  throw error;
-} 
+}
+
+export { db };
+export default app; 

@@ -5,13 +5,13 @@ const dummyData = [
   {
     name: "Test User 1",
     email: "test1@example.com",
-    joinedAt: new Date(),
+    joinedAt: new Date().toISOString(),
     status: "pending"
   },
   {
     name: "Test User 2",
     email: "test2@example.com",
-    joinedAt: new Date(),
+    joinedAt: new Date().toISOString(),
     status: "approved"
   }
 ];
