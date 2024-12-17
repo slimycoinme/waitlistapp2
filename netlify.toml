@@ -21,3 +21,26 @@
 
 [context.production.environment]
   VITE_API_URL = "https://only4u.live/api"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+
+# Add proper MIME types
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "text/javascript"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Type = "text/css"
+
+[[headers]]
+  for = "/*.module.js"
+  [headers.values]
+    Content-Type = "text/javascript"
